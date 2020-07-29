@@ -1,28 +1,21 @@
-from __future__ import print_function
-import pickle
+import datetime
 import os.path
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
+import pickle
+import subprocess
+import time
+from urllib.parse import urlparse
+
+from dotenv import load_dotenv
 from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-from urllib.parse import urlparse
-import re
-from dotenv import load_dotenv
-import subprocess
-import datetime
-import time
+from urlextract import URLExtract
+import tempfile
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-RANGE_NAME = 'A3:H14'
-
-
-def extract_url(text):
-    """Функция из пакета  extracturl (https://pypi.org/project/extracturl/) принтует, но не возвращает значение.
-        Еще и делает это не точно, с лишними символами. Я сделал свою."""
-    pattern = r'(?P<url>https?://[^"\s]+)'
-    url = re.search(pattern, text)
-    return url.group()
+RANGE_NAME = 'A3:H'
 
 
 def get_post_image(id):
@@ -78,36 +71,47 @@ def check_spreadsheet():
         post_vk, post_tg, post_fb, publish_day, publish_time, \
         post_text_link, post_image_link, is_published = posting_day_schedule
 
-        if publish_day == weekdays[today_weekday] and is_published == 'нет' and publish_time == current_hour:
-            text_url = extract_url(post_text_link)
-            text_file_id = urlparse(text_url).query[3:]
+        is_today = publish_day == weekdays[today_weekday]
+        is_now = publish_time == current_hour
+        is_already_published = is_published.lower().strip() == 'нет'
 
-            image_url = extract_url(post_image_link)
-            image_file_id = urlparse(image_url).query[3:]
+        if not (is_today and is_now and is_already_published):
+            continue
 
-            try:
-                text_file_path = get_post_text(text_file_id)
-                image_file_path = get_post_image(image_file_id)
+        text_url = url_extractor.find_urls(post_text_link)[0]
+        text_file_id = urlparse(text_url).query[3:]
 
-                terminal_commands = ['python3', 'vk_tg_fb_posting.py', image_file_path, text_file_path]
+        image_url = url_extractor.find_urls(post_image_link)[0]
+        image_file_id = urlparse(image_url).query[3:]
 
-                if post_vk == 'да':
-                    terminal_commands.append('-pv')
-                elif post_fb == 'да':
-                    terminal_commands.append('-pf')
-                elif post_tg == 'да':
-                    terminal_commands.append('-pt')
+        try:
+            text_file_path = get_post_text(text_file_id)
+            image_file_path = get_post_image(image_file_id)
 
-                subprocess.call(terminal_commands)
+            terminal_commands = ['python3', 'vk_tg_fb_posting.py', image_file_path, text_file_path]
 
+            if post_vk.lower().strip() == 'да':
+                terminal_commands.append('-pv')
+            elif post_fb.lower().strip() == 'да':
+                terminal_commands.append('-pf')
+            elif post_tg.lower().strip() == 'да':
+                terminal_commands.append('-pt')
+
+            exit_code = subprocess.call(terminal_commands)
+
+            if exit_code == 0:
                 schedule_sheet.values().update(
                     spreadsheetId=spreadsheet_id,
                     range="'Лист1'!H{}".format(index + 3),
                     body={'values': [['да'], ]},
-                    valueInputOption='RAW').execute(),
-            finally:
-                os.remove(text_file_path)
-                os.remove(image_file_path)
+                    valueInputOption='RAW').execute()
+                print('Post was published successfully!')
+            else:
+                print('Program "vk_tg_fb_posting.py" finished with exit code', exit_code)
+
+        finally:
+           os.remove(text_file_path)
+           os.remove(image_file_path)
 
 
 if __name__ == '__main__':
@@ -129,6 +133,7 @@ if __name__ == '__main__':
 
     schedule_sheet = authorize_in_sheets_application()
     drive = authorize_in_drive_application()
+    url_extractor = URLExtract()
 
     while True:
         check_spreadsheet()

@@ -9,6 +9,8 @@ python-dotenv==0.13.0
 requests==2.23.0
 vk-api==11.8.0
 python-telegram-bot==12.7
+urlextract==1.0.0
+
 
 
 
