@@ -40,7 +40,7 @@ $ pip install -r requirements.txt
 
 `TELEGRAM_TOKEN`=токен_телеграм_бота
 
-`TELEGRAM_CHANEL_ID`=ссылка_на_канал(например: @my_channel_is_awesome)
+`TELEGRAM_CHANNEL_ID`=ссылка_на_канал(например: @my_channel_is_awesome)
 
 `FACEBOOK_TOKEN`=токен_фейсбук
 

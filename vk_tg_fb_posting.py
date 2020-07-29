@@ -62,7 +62,7 @@ if __name__ == '__main__':
     vk_album_id = os.getenv('VK_ALBUM_ID')
 
     telegram_token = os.getenv('TELEGRAM_TOKEN')
-    telegram_channel = os.getenv('TELEGRAM_CHANEL_ID')
+    telegram_channel = os.getenv('TELEGRAM_CHANNEL_ID')
 
     facebook_token = os.getenv('FACEBOOK_TOKEN')
     facebook_group_id = os.getenv('FACEBOOK_GROUP_ID')
