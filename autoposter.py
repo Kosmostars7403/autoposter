@@ -18,18 +18,18 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 RANGE_NAME = 'A3:H'
 
 
-def get_post_image(id):
+def get_post_image(id, image_tempfile):
     post_image_file = drive.CreateFile({'id': id})
     post_image_file.FetchMetadata(fields='title, downloadUrl')
-    post_image_file.GetContentFile(post_image_file['title'])
-    return post_image_file['title']
+    post_image_file.GetContentFile(image_tempfile.name)
+    return image_tempfile.name
 
 
-def get_post_text(id):
+def get_post_text(id, text_tempfile):
     post_text_file = drive.CreateFile({'id': id})
     post_text_file.FetchMetadata(fields='title, exportLinks')
-    post_text_file.GetContentFile(post_text_file['title'], mimetype='text/plain')
-    return post_text_file['title']
+    post_text_file.GetContentFile(text_tempfile.name, mimetype='text/plain')
+    return text_tempfile.name
 
 
 def authorize_in_drive_application():
@@ -84,34 +84,32 @@ def check_spreadsheet():
         image_url = url_extractor.find_urls(post_image_link)[0]
         image_file_id = urlparse(image_url).query[3:]
 
-        try:
-            text_file_path = get_post_text(text_file_id)
-            image_file_path = get_post_image(image_file_id)
+        image_tempfile = tempfile.NamedTemporaryFile()
+        text_tempfile = tempfile.NamedTemporaryFile()
 
-            terminal_commands = ['python3', 'vk_tg_fb_posting.py', image_file_path, text_file_path]
+        text_file_path = get_post_text(text_file_id, text_tempfile)
+        image_file_path = get_post_image(image_file_id, image_tempfile)
 
-            if post_vk.lower().strip() == 'да':
-                terminal_commands.append('-pv')
-            elif post_fb.lower().strip() == 'да':
-                terminal_commands.append('-pf')
-            elif post_tg.lower().strip() == 'да':
-                terminal_commands.append('-pt')
+        terminal_commands = ['python3', 'vk_tg_fb_posting.py', image_file_path, text_file_path]
 
-            exit_code = subprocess.call(terminal_commands)
+        if post_vk.lower().strip() == 'да':
+            terminal_commands.append('-pv')
+        elif post_fb.lower().strip() == 'да':
+            terminal_commands.append('-pf')
+        elif post_tg.lower().strip() == 'да':
+            terminal_commands.append('-pt')
 
-            if exit_code == 0:
-                schedule_sheet.values().update(
-                    spreadsheetId=spreadsheet_id,
-                    range="'Лист1'!H{}".format(index + 3),
-                    body={'values': [['да'], ]},
-                    valueInputOption='RAW').execute()
-                print('Post was published successfully!')
-            else:
-                print('Program "vk_tg_fb_posting.py" finished with exit code', exit_code)
+        exit_code = subprocess.call(terminal_commands)
 
-        finally:
-           os.remove(text_file_path)
-           os.remove(image_file_path)
+        if exit_code == 0:
+            schedule_sheet.values().update(
+                spreadsheetId=spreadsheet_id,
+                range="'Лист1'!H{}".format(index + 3),
+                body={'values': [['да'], ]},
+                valueInputOption='RAW').execute()
+            print('Post was published successfully!')
+        else:
+            print('Program "vk_tg_fb_posting.py" finished with exit code', exit_code)
 
 
 if __name__ == '__main__':
