@@ -27,16 +27,16 @@ WEEKDAYS = {0: 'понедельник',
             }
 
 
-def get_post_image(id, image_tempfile_name, drive):
+def get_post_image(id, image_file_name, drive):
     post_image_file = drive.CreateFile({'id': id})
     post_image_file.FetchMetadata(fields='title, downloadUrl')
-    post_image_file.GetContentFile(image_tempfile_name)
+    post_image_file.GetContentFile(image_file_name)
 
 
-def get_post_text(id, text_tempfile_name, drive):
+def get_post_text(id, text_file_name, drive):
     post_text_file = drive.CreateFile({'id': id})
     post_text_file.FetchMetadata(fields='title, exportLinks')
-    post_text_file.GetContentFile(text_tempfile_name, mimetype='text/plain')
+    post_text_file.GetContentFile(text_file_name, mimetype='text/plain')
 
 
 def authorize_in_drive_application():
@@ -67,7 +67,7 @@ def authorize_in_sheets_application():
     return sheet
 
 
-def check_spreadsheet(schedule_sheet, spreadsheet_id):
+def check_spreadsheet(schedule_sheet, spreadsheet_id, drive):
     today_weekday = datetime.date.today().weekday()
     current_hour = datetime.datetime.now().hour
 
@@ -132,5 +132,5 @@ if __name__ == '__main__':
 
 
     while True:
-        check_spreadsheet(schedule_sheet, spreadsheet_id)
+        check_spreadsheet(schedule_sheet, spreadsheet_id, drive)
         time.sleep(60)
